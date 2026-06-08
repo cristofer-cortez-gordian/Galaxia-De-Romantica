@@ -23,6 +23,15 @@
             margin: 20px auto;
             overflow: hidden;
             cursor: pointer;
+            
+            /* --- INICIO DE BLOQUEO DE SELECCIÓN --- */
+            -webkit-touch-callout: none; /* Evita el menú emergente en iOS */
+            -webkit-user-select: none;   /* Safari */
+            -moz-user-select: none;      /* Firefox */
+            -ms-user-select: none;       /* Internet Explorer/Edge */
+            user-select: none;           /* Versión estándar */
+            -webkit-tap-highlight-color: transparent; /* Quita el cuadro azul al tocar en móviles */
+            /* --- FIN DE BLOQUEO DE SELECCIÓN --- */
         }
 
         /* Estilo para la imagen de la huella */
@@ -30,8 +39,12 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            /* Filtro para darle un brillo similar al neón */
             filter: drop-shadow(0 0 5px #00e5ff); 
+            
+            /* --- INICIO DE BLOQUEO DE ARRASTRE --- */
+            pointer-events: none; /* Hace que el clic/toque pase a través de la imagen hacia el contenedor */
+            -webkit-user-drag: none; /* Evita que la imagen se pueda arrastrar */
+            /* --- FIN DE BLOQUEO DE ARRASTRE --- */
         }
 
         /* Línea del escáner */
