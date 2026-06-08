@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Poppins:wght@300&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            display: flex; justify-content: center; align-items: center; height: 100vh; 
+            background: #0a0a12; /* Fondo oscuro para que resalte el neón */
+            font-family: 'Poppins', sans-serif; 
+        }
+        .container { 
+            text-align: center; background: rgba(20, 20, 30, 0.9); 
+            padding: 2.5rem; border-radius: 30px; 
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2); 
+            width: 320px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        h3 { color: #00e5ff; font-family: 'Dancing Script', cursive; font-size: 1.8rem; }
+        
+        /* Contenedor de la huella */
+        .fingerprint-container {
+            position: relative;
+            width: 100px; height: 120px;
+            margin: 20px auto;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        /* Estilo para la imagen de la huella */
+        .fingerprint-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            /* Filtro para darle un brillo similar al neón */
+            filter: drop-shadow(0 0 5px #00e5ff); 
+        }
+
+        /* Línea del escáner */
+        .scanner-line {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 2px;
+            background: #00e5ff;
+            box-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff;
+            display: none;
+            z-index: 2; /* Para asegurar que pase por encima de la imagen */
+        }
+
+        .scanning .scanner-line {
+            display: block;
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+
+        #mensaje { 
+            margin: 20px 0; font-family: 'Dancing Script', cursive; 
+            font-size: 1.3rem; color: #fff; min-height: 80px; 
+        }
+        .btn-entrar { 
+            display: none; background: #00e5ff; color: #0a0a12; 
+            padding: 12px 30px; border: none; border-radius: 50px; 
+            cursor: pointer; font-size: 1rem; font-weight: bold; transition: 0.3s;
+        }
+        .btn-entrar:hover { background: #00b8d4; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h3>Para ti...</h3>
+    
+    <div id="icon" class="fingerprint-container" onclick="escanear()">
+        <img src="huella.png" alt="Huella dactilar">
+        <div class="scanner-line"></div>
+    </div>
+    
+    <div id="mensaje">Toca la huella para desbloquear nuestro espacio</div>
+    <button id="btn" class="btn-entrar" onclick="window.location.href='galaxia.html'">Entrar al lugar especial</button>
+</div>
+
+<script>
+    function escanear() {
+        const container = document.getElementById('icon');
+        const msj = document.getElementById('mensaje');
+        const btn = document.getElementById('btn');
+
+        // Evita que se reinicie la animación si ya se está escaneando
+        if(container.classList.contains('scanning')) return;
+
+        container.classList.add('scanning');
+        msj.innerText = "Escaneando tu esencia...";
+
+        setTimeout(() => {
+            container.classList.remove('scanning');
+            msj.innerHTML = "¡Bienvenida, mi amor! <br> Todo este lugar fue creado pensando en cada detalle de ti.";
+            btn.style.display = "inline-block";
+        }, 3000);
+    }
+</script>
+
+</body>
+</html>

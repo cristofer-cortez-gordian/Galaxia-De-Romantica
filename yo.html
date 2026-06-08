@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Efecto Partículas Alta Calidad</title>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const img = new Image();
+    img.src = 'yo.png'; // Asegúrate que tu archivo esté en la misma carpeta
+
+    img.onload = () => {
+        const tempCanvas = document.createElement('canvas');
+        const tCtx = tempCanvas.getContext('2d');
+        
+        // --- CAMBIO 1: ALTA ESCALA PARA CALIDAD ---
+        // Usamos una escala mayor (0.8) para no perder nitidez.
+        // Si tu PC es potente, puedes probar con 1.0 (escala real).
+        const scale = 0.2; 
+        tempCanvas.width = img.width * scale;
+        tempCanvas.height = img.height * scale;
+        tCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+        
+        const data = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height).data;
+        const particles = [];
+
+        // --- CAMBIO 2: ESPACIO MINIMO ---
+        // Un gap de 2 crea una densidad de partículas mucho mayor.
+        // Esto elimina la rejilla negra y hace que la imagen se vea nítida.
+        const gap = 1; 
+
+        for (let y = 0; y < tempCanvas.height; y += gap) {
+            for (let x = 0; x < tempCanvas.width; x += gap) {
+                const i = (y * tempCanvas.width + x) * 4;
+                if (data[i + 3] > 128) {
+                    particles.push({
+                        // Empiezan desde posiciones aleatorias lejos del centro
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        tx: x + (canvas.width - tempCanvas.width) / 2,
+                        ty: y + (canvas.height - tempCanvas.height) / 2,
+                        color: `rgb(${data[i]},${data[i+1]},${data[i+2]})`
+                    });
+                }
+            }
+        }
+
+        function animate() {
+            // Fondo negro sólido para mantener la nitidez al final
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                // Inercia suave para que se sientan "ligeras"
+                p.x += (p.tx - p.x) * 0.04;
+                p.y += (p.ty - p.y) * 0.04;
+
+                ctx.fillStyle = p.color;
+                // Dibujamos micro-puntos para precisión fotográfica
+                ctx.fillRect(p.x, p.y, gap * 0.9, gap * 0.9);
+            });
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+    };
+</script>
+</body>
+</html>

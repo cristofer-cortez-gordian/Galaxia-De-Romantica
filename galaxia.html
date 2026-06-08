@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaxia 3D - Interactiva</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000208; font-family: sans-serif; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <script>
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000208, 0.015);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 17); 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // --- INICIALIZAR CONTROLES (Mouse/Touch) ---
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; // Hace que el movimiento sea suave
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 5;  // Zoom máximo
+        controls.maxDistance = 40; // Zoom mínimo
+
+        const materialsToFade = [];
+
+        function createGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 64, 64);
+            return new THREE.CanvasTexture(canvas);
+        }
+        const particleTexture = createGlowTexture();
+
+        function createStars() {
+            const starGeo = new THREE.BufferGeometry();
+            const starCount = 3000;
+            const starPos = new Float32Array(starCount * 3);
+            for(let i = 0; i < starCount * 3; i++) {
+                starPos[i] = (Math.random() - 0.5) * 120;
+            }
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            const starMat = new THREE.PointsMaterial({
+                color: 0xffffff, size: 0.12, map: particleTexture, transparent: true, opacity: 0, depthWrite: false
+            });
+            materialsToFade.push(starMat);
+            return new THREE.Points(starGeo, starMat);
+        }
+        scene.add(createStars());
+
+        function createFanGalaxy(colorHex, direction) {
+            const particleCount = 18000;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const color = new THREE.Color(colorHex);
+            const colors = new Float32Array(particleCount * 3);
+
+            for(let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+                const radius = Math.pow(Math.random(), 1.5) * 6;
+                const branchAngle = (i % 3) * ((Math.PI * 2) / 3); 
+                const spinAngle = radius * 0.7 * direction;
+                const widthFactor = radius * 0.4; 
+                
+                positions[i3    ] = Math.cos(branchAngle + spinAngle) * radius + (Math.random() - 0.5) * widthFactor;
+                positions[i3 + 1] = (Math.random() - 0.5) * 0.1; 
+                positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + (Math.random() - 0.5) * widthFactor;
+
+                const mixColor = color.clone().lerp(new THREE.Color(0xffffff), Math.max(0, 1 - (radius / 2)));
+                colors[i3    ] = mixColor.r;
+                colors[i3 + 1] = mixColor.g;
+                colors[i3 + 2] = mixColor.b;
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            const material = new THREE.PointsMaterial({
+                size: 0.14, map: particleTexture, vertexColors: true, transparent: true, opacity: 0, 
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            materialsToFade.push(material);
+            return new THREE.Points(geometry, material);
+        }
+
+        const pinkGalaxy = createFanGalaxy(0xff1493, 1);
+        pinkGalaxy.position.set(-7.5, -3, -1);
+        scene.add(pinkGalaxy);
+
+        const blueGalaxy = createFanGalaxy(0x00bfff, -1);
+        blueGalaxy.position.set(7.5, -3, -1);
+        scene.add(blueGalaxy);
+
+        function createParticleText(text, colorHex) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'black'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = 'bold 160px "Arial Black", sans-serif';
+            ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            const positions = [], colors = [];
+            const baseColor = new THREE.Color(colorHex);
+            const scale = 0.035; 
+            
+            for (let y = 0; y < canvas.height; y += 3) {
+                for (let x = 0; x < canvas.width; x += 3) {
+                    const index = (y * canvas.width + x) * 4;
+                    if (imageData[index] > 128) {
+                        const pX = (x - canvas.width / 2) * scale;
+                        const pY = -(y - canvas.height / 2) * scale;
+                        for(let i = 0; i < 4; i++) {
+                            positions.push(pX + (Math.random() - 0.5) * 0.4, pY + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.8);
+                            const mix = Math.random() * 0.6 + 0.4;
+                            colors.push(baseColor.r * mix, baseColor.g * mix, baseColor.b * mix);
+                        }
+                    }
+                }
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            const material = new THREE.PointsMaterial({ size: 0.12, map: particleTexture, vertexColors: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+            materialsToFade.push(material);
+            return new THREE.Points(geometry, material);
+        }
+
+        const tuText = createParticleText("TÚ", 0xff1493);
+        tuText.userData = { baseY: 1.5 }; 
+        tuText.position.set(-7.5, tuText.userData.baseY, 0); 
+        scene.add(tuText);
+
+        const yoText = createParticleText("YO", 0x00bfff);
+        yoText.userData = { baseY: 1.5 };
+        yoText.position.set(7.5, yoText.userData.baseY, 0); 
+        scene.add(yoText);
+
+        function createDenseHeart() {
+            const particleCount = 12000;
+            const positions = [];
+            for(let i = 0; i < particleCount; i++) {
+                const t = Math.random() * Math.PI * 2;
+                const r = Math.sqrt(Math.random()); 
+                const baseX = 16 * Math.pow(Math.sin(t), 3);
+                const baseY = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                positions.push(baseX * r * 0.12, baseY * r * 0.12, (Math.random() - 0.5) * 1.5);
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({ color: 0xffffff, size: 0.18, map: particleTexture, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+            materialsToFade.push(material);
+            return new THREE.Points(geometry, material);
+        }
+
+        const heartParticles = createDenseHeart();
+        heartParticles.position.set(0, 0, 1);
+        scene.add(heartParticles);
+
+        let globalOpacity = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            if (globalOpacity < 1) {
+                globalOpacity += 0.005; 
+                materialsToFade.forEach(mat => { mat.opacity = globalOpacity; });
+            }
+            
+            // Actualizamos los controles en cada frame
+            controls.update();
+
+            pinkGalaxy.rotation.y -= 0.003;
+            blueGalaxy.rotation.y += 0.003;
+            tuText.position.y = tuText.userData.baseY + Math.sin(Date.now() * 0.0015) * 0.3;
+            yoText.position.y = yoText.userData.baseY + Math.cos(Date.now() * 0.0015) * 0.3;
+            heartParticles.scale.setScalar(1 + Math.sin(Date.now() * 0.004) * 0.06);
+            
+            renderer.render(scene, camera);
+        }
+
+        // --- INICIO DE CÓDIGO DE NAVEGACIÓN AGREGADO ---
+        const raycaster = new THREE.Raycaster();
+        raycaster.params.Points.threshold = 0.5; 
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects([tuText, yoText, heartParticles]);
+            if (intersects.length > 0) {
+                document.body.style.cursor = 'pointer';
+            } else {
+                document.body.style.cursor = 'default';
+            }
+        });
+
+        window.addEventListener('click', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            if (raycaster.intersectObject(tuText).length > 0) {
+                window.location.href = 'tu.html'; // <-- Cambia por tu URL
+            } else if (raycaster.intersectObject(yoText).length > 0) {
+                window.location.href = 'yo.html'; // <-- Cambia por tu URL
+            } else if (raycaster.intersectObject(heartParticles).length > 0) {
+                window.location.href = 'corazon_pagina.html'; // <-- Cambia por tu URL
+            }
+        });
+        // --- FIN DE CÓDIGO DE NAVEGACIÓN AGREGADO ---
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        animate();
+    </script>
+</body>
+</html>
