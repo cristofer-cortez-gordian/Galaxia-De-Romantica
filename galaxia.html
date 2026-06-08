@@ -194,9 +194,53 @@
 
         // --- INICIO DE CÓDIGO DE NAVEGACIÓN AGREGADO ---
         const raycaster = new THREE.Raycaster();
-        raycaster.params.Points.threshold = 0.5; 
+        // Aumentamos un poco más el threshold para que sea más fácil tocar con el dedo
+        raycaster.params.Points.threshold = 0.8; 
         const mouse = new THREE.Vector2();
 
+        // Función unificada para computadora y celular
+        function checkIntersection(clientX, clientY) {
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            if (raycaster.intersectObject(tuText).length > 0) {
+                window.location.href = 'tu.html'; 
+            } else if (raycaster.intersectObject(yoText).length > 0) {
+                window.location.href = 'yo.html'; 
+            } else if (raycaster.intersectObject(heartParticles).length > 0) {
+                window.location.href = 'corazon_pagina.html'; 
+            }
+        }
+
+        // Evento para Computadoras (Mouse)
+        window.addEventListener('click', (event) => {
+            checkIntersection(event.clientX, event.clientY);
+        });
+
+        // Eventos para Dispositivos Móviles (Touch)
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        window.addEventListener('touchstart', (event) => {
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+        }, { passive: true });
+
+        window.addEventListener('touchend', (event) => {
+            const touchEndX = event.changedTouches[0].clientX;
+            const touchEndY = event.changedTouches[0].clientY;
+            
+            // Calculamos si el dedo se movió (para saber si estaba girando la galaxia)
+            const distance = Math.sqrt(Math.pow(touchEndX - touchStartX, 2) + Math.pow(touchEndY - touchStartY, 2));
+            
+            // Si la distancia es menor a 15 píxeles, lo consideramos un tap (clic) válido
+            if (distance < 15) { 
+                checkIntersection(touchEndX, touchEndY);
+            }
+        });
+
+        // Cambiar el cursor a 'manita' (solo aplica para PC)
         window.addEventListener('mousemove', (event) => {
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -207,20 +251,6 @@
                 document.body.style.cursor = 'pointer';
             } else {
                 document.body.style.cursor = 'default';
-            }
-        });
-
-        window.addEventListener('click', (event) => {
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-
-            if (raycaster.intersectObject(tuText).length > 0) {
-                window.location.href = 'tu.html'; // <-- Cambia por tu URL
-            } else if (raycaster.intersectObject(yoText).length > 0) {
-                window.location.href = 'yo.html'; // <-- Cambia por tu URL
-            } else if (raycaster.intersectObject(heartParticles).length > 0) {
-                window.location.href = 'corazon_pagina.html'; // <-- Cambia por tu URL
             }
         });
         // --- FIN DE CÓDIGO DE NAVEGACIÓN AGREGADO ---
